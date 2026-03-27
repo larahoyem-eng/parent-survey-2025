@@ -226,7 +226,7 @@ body { font-family: 'Open Sans', sans-serif; background: var(--bg); color: var(-
       </div>
       <span id="lbl-high">Higher %</span>
       <span style="margin-left:14px;color:#999;" id="lbl-nodata">— = no data</span>
-      <span style="margin-left:14px;color:#999;font-style:italic;" id="lbl-hm-note">Colors show % selecting Option 1 (Cabeza)</span>
+      <span style="margin-left:14px;color:#999;font-style:italic;" id="lbl-hm-note">Cell values = % who answered Yes (Head / Cabeza) — darker green = higher %</span>
       <span class="hm-legend-flag" id="lbl-flag-legend">⚑ = data quality flag</span>
     </div>
   </div>
@@ -331,24 +331,27 @@ const T = {
     hmTitle: 'Response breakdown by question & round',
     hmSub: '% selecting each answer option — hover a cell for detail',
     lblLow: 'Lower %', lblHigh: 'Higher %', lblNoData: '— = no data',
-    lblHmNote: 'Colors show % selecting Option 1 (Cabeza / Head)',
+    lblHmNote: 'Cell values = % who answered Yes (Head / Cabeza) — darker green = higher %',
     lblQuestion: 'Question',
     roundLabel: (r) => `Round ${r}`,
     allDataSummary: (recs, comms) => `All data — <strong>${recs.toLocaleString()}</strong> records across <strong>${comms}</strong> communities`,
     filterSummary: (agent, comms, recs) => `<strong>${agent}</strong> · <strong>${recs.toLocaleString()}</strong> records · <strong>${comms}</strong> communities`,
-    opt: ['', 'Option 1 (Cabeza/Head)', 'Option 2 (Hombros/Shoulders)', 'Option 3 (Rodillas/Knees)'],
+    opt: ['', 'Option 1 (Head)', 'Option 2 (Shoulders)', 'Option 3 (Knees)'],
     attended: 'attended',
     responses: 'responses',
     barTitle: 'Full response breakdown by question',
     barSub: 'All 3 options across all rounds — select a question below',
-    barLegOpt1: 'Option 1 · Cabeza (Head)',
-    barLegOpt2: 'Option 2 · Hombros (Shoulders)',
-    barLegOpt3: 'Option 3 · Rodillas (Knees)',
+    barLegOpt1: 'Head (Cabeza)',
+    barLegOpt2: 'Shoulders (Hombros)',
+    barLegOpt3: 'Knees (Rodillas)',
     barN: 'n',
+    answerKey: 'Answer key',
     flagTitle: 'Data quality note',
     flagMsg: 'Unexpected responses recorded for this binary question (Q8–10 use Yes/No only). Data shown as recorded.',
     flagLegend: '⚑ = data quality flag',
-    flagWho: 'Flagged communities: Clarissa\'s communities + Josué / Laguan 1 (Round 1)',
+    flagWho: "Flagged communities: Clarissa's communities + Josué / Laguan 1 (Round 1)",
+  },
+  es: {
     hdrTitle: 'Evaluación Capacitación Padres de Familia — Honduras',
     hdrSub: '6 agentes de cambio · 45 comunidades · 3 rondas de evaluación',
     lblAgent: 'Agente de cambio', optAllAgent: 'Todos los agentes',
@@ -368,7 +371,7 @@ const T = {
     hmTitle: 'Desglose de respuestas por pregunta y ronda',
     hmSub: '% que eligió cada opción — pase el cursor para detalle',
     lblLow: 'Menor %', lblHigh: 'Mayor %', lblNoData: '— = sin datos',
-    lblHmNote: 'Colores muestran % que eligió Opción 1 (Cabeza)',
+    lblHmNote: 'Valores = % que respondió Sí (Cabeza) — verde más oscuro = mayor %',
     lblQuestion: 'Pregunta',
     roundLabel: (r) => `Ronda ${r}`,
     allDataSummary: (recs, comms) => `Todos los datos — <strong>${recs.toLocaleString()}</strong> registros en <strong>${comms}</strong> comunidades`,
@@ -378,10 +381,11 @@ const T = {
     responses: 'respuestas',
     barTitle: 'Desglose completo de respuestas por pregunta',
     barSub: 'Las 3 opciones en todas las rondas — seleccione una pregunta',
-    barLegOpt1: 'Opción 1 · Cabeza',
-    barLegOpt2: 'Opción 2 · Hombros',
-    barLegOpt3: 'Opción 3 · Rodillas',
+    barLegOpt1: 'Cabeza (Head)',
+    barLegOpt2: 'Hombros (Shoulders)',
+    barLegOpt3: 'Rodillas (Knees)',
     barN: 'n',
+    answerKey: 'Clave de respuestas',
     flagTitle: 'Nota de calidad de datos',
     flagMsg: 'Se registraron respuestas inesperadas para esta pregunta binaria (Q8–10 solo usan Sí/No). Datos mostrados tal como se registraron.',
     flagLegend: '⚑ = indicador de calidad de datos',
@@ -610,8 +614,9 @@ function renderHeatmap(filtered) {
   Object.keys(ttStore).forEach(k => delete ttStore[k]);
   ttIdx = 0;
 
+  const yesLabel = lang === 'en' ? '% Yes (Head)' : '% Sí (Cabeza)';
   let html = '<thead><tr><th class="q-th">'+t.lblQuestion+'</th>';
-  [1,2,3].forEach(r => html += `<th>${t.roundLabel(r)}</th>`);
+  [1,2,3].forEach(r => html += `<th>${t.roundLabel(r)}<br><span style="font-size:9px;font-weight:400;opacity:0.75;letter-spacing:0.02em;">${yesLabel}</span></th>`);
   html += '</tr></thead><tbody>';
 
   activeQs.forEach(qNum => {
@@ -714,7 +719,15 @@ function renderBar(filtered) {
   const opts = q.opts || [t.opt[1], t.opt[2], t.opt[3]];
   const isBinary = opts.length === 2;  // Q8-10 have only Yes/No
 
+  // Build answer key chips showing what each gesture means for this question
+  const keyChips = opts.map((optLabel, idx) => {
+    const colors = ['var(--blue)', 'var(--orange)', 'var(--yellow)'];
+    const textColors = ['#fff', '#fff', 'var(--ytxt)'];
+    return `<span style="display:inline-flex;align-items:center;gap:5px;background:${colors[idx]};color:${textColors[idx]};border-radius:12px;padding:3px 10px;font-size:11px;font-family:'Montserrat',sans-serif;font-weight:600;">${optLabel}</span>`;
+  }).join(' ');
+
   let html = `<div class="bar-q-label"><strong>Q${selectedQ}</strong>${q.text}</div>`;
+  html += `<div style="margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-family:'Montserrat',sans-serif;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);">${t.answerKey}:</span>${keyChips}</div>`;
   html += '<div class="bar-group">';
 
   let anyFlagged = false;
@@ -755,12 +768,12 @@ function renderBar(filtered) {
     </div>`;
   });
 
-  // Legend — suppress opt3 item for binary questions
+  // Legend — suppress opt3 item for binary questions — use question-specific answer labels
   html += `</div>
   <div class="bar-legend">
-    <div class="bar-leg-item"><span class="bar-leg-dot" style="background:var(--blue);"></span>${t.barLegOpt1}</div>
-    <div class="bar-leg-item"><span class="bar-leg-dot" style="background:var(--orange);"></span>${t.barLegOpt2}</div>
-    ${!isBinary ? `<div class="bar-leg-item"><span class="bar-leg-dot" style="background:var(--yellow);border:1px solid #e0c000;"></span>${t.barLegOpt3}</div>` : ''}
+    <div class="bar-leg-item"><span class="bar-leg-dot" style="background:var(--blue);"></span>${opts[0]}</div>
+    <div class="bar-leg-item"><span class="bar-leg-dot" style="background:var(--orange);"></span>${opts[1]}</div>
+    ${!isBinary ? `<div class="bar-leg-item"><span class="bar-leg-dot" style="background:var(--yellow);border:1px solid #e0c000;"></span>${opts[2]}</div>` : ''}
   </div>`;
 
   // Flag notice if any round has flagged data
